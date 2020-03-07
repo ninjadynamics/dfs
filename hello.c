@@ -58,26 +58,25 @@ void main(void) {
   
   wp = solve(28, 25, 14, 4); 
   
-  k = 1; i = 0;  
-  while (i < wp) {    
-    for (c = i + 1; c < wp; ++c) {
-      if (c - i > 1 && COST(i, c) == 1) {        
+  k = 0; i = 0;
+  while (i < wp) {
+    for (c = i + 2; c < wp; ++c) {
+      if (COST(i, c) == 1) {        
         i = c - 1;
         break;
       }
     } 
-    ++i;
+    ++i; ++k;
     waypointX[k] = waypointX[i];
-    waypointY[k] = waypointY[i];
-    ++k;
-  }
+    waypointY[k] = waypointY[i];   
+  } wp = k;
   
   if (!wp) {
     vram_adr(NTADR_A(3, 2));
     vram_write("No solution", 11);    
   }  
   
-  for (i = 0; i < k; ++i) {    
+  for (i = 0; i < wp; ++i) {    
     x = waypointX[i];
     y = waypointY[i];   
     vram_adr(NTADR_A(x, y));
@@ -93,7 +92,7 @@ void main(void) {
     x = waypointX[i];
     y = waypointY[i];
     oam_spr(x*8, y*8-1, 0x18, 0, 0);
-    if (++i == k - 1) i = 0;
+    if (++i == wp) i = 0;
     delay(2);    
     ppu_wait_nmi();
   };
