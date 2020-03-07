@@ -59,16 +59,13 @@ void main(void) {
   wp = solve(28, 25, 14, 4); 
   
   k = 1; i = 0;  
-  while (i < wp) {
+  while (i < wp) {    
     for (c = i + 1; c < wp; ++c) {
       if (c - i > 1 && COST(i, c) == 1) {        
-        waypointX[k] = waypointX[c];
-        waypointY[k] = waypointY[c];
-        ++k;
-        i = c;
-        continue;
+        i = c - 1;
+        break;
       }
-    }
+    } 
     ++i;
     waypointX[k] = waypointX[i];
     waypointY[k] = waypointY[i];
