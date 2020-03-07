@@ -30,14 +30,25 @@ char value[6];
   ABS_DIFF(waypointY[a], waypointY[b]) \
 )
 
+/*{pal:"nes",layout:"nes"}*/
+const char PALETTE[32] = { 
+  0x21,			// screen color
+
+  0x17,0x28,0x30,0x0,	// background palette 0
+  0x1c,0x20,0x2c,0x0,	// background palette 1
+  0x00,0x10,0x20,0x0,	// background palette 2
+  0x06,0x16,0x26,0x0,   // background palette 3
+
+  0x16,0x35,0x24,0x0,	// sprite palette 0
+  0x00,0x37,0x25,0x0,	// sprite palette 1
+  0x0d,0x2d,0x3a,0x0,	// sprite palette 2
+  0x0d,0x27,0x2a	// sprite palette 3
+};
+
 void main(void) {
 
-  // set palette colors
-  pal_col(0,0x21);	// set screen to dark blue
-  pal_col(1,0x17);	// fuchsia
-  pal_col(2,0x28);	// grey
-  pal_col(3,0x30);	// white
-
+  pal_all(PALETTE);  
+  
   // Draw area
   for (y = 0; y < 30; ++y) {
     for (x = 0; x < 32; ++x) {
@@ -82,9 +93,9 @@ void main(void) {
   while (1) {
     for (i = 0; i < k; ++i) {    
       x = waypointX[opt[i]];
-      y = waypointY[opt[i]];   
-      oam_spr(x*8, y*8-1, 0x01, 0, 0);
-      delay(1);      
+      y = waypointY[opt[i]];
+      oam_spr(x*8, y*8-1, 0x18, 0, 0);
+      delay(8);      
     }    
     ppu_wait_nmi();
   };
