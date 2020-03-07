@@ -21,7 +21,6 @@ Finally, turn on the PPU to display video.
 static int16_t i, x, y, wp;
 
 static int16_t c, k;
-static uint8_t opt[256];
 
 char value[6];
 
@@ -57,19 +56,23 @@ void main(void) {
     }
   }
   
-  wp = solve(2, 25, 28, 3); 
+  wp = solve(28, 25, 14, 4); 
   
-  k = 0; i = 0;
-  opt[k++] = i;
+  k = 1; i = 0;  
   while (i < wp) {
     for (c = i + 1; c < wp; ++c) {
-      if (c - i > 1 && COST(i, c) == 1) {
-        opt[k++] = c;
+      if (c - i > 1 && COST(i, c) == 1) {        
+        waypointX[k] = waypointX[c];
+        waypointY[k] = waypointY[c];
+        ++k;
         i = c;
         continue;
       }
     }
-    opt[k++] = ++i;    
+    ++i;
+    waypointX[k] = waypointX[i];
+    waypointY[k] = waypointY[i];
+    ++k;
   }
   
   if (!wp) {
@@ -78,10 +81,8 @@ void main(void) {
   }  
   
   for (i = 0; i < k; ++i) {    
-    //x = waypointX[i];
-    //y = waypointY[i];   
-    x = waypointX[opt[i]];
-    y = waypointY[opt[i]];       
+    x = waypointX[i];
+    y = waypointY[i];   
     vram_adr(NTADR_A(x, y));
     vram_write("+", 1);   
   }  
@@ -92,10 +93,10 @@ void main(void) {
   // infinite loop
   while (1) {
     for (i = 0; i < k; ++i) {    
-      x = waypointX[opt[i]];
-      y = waypointY[opt[i]];
+      x = waypointX[i];
+      y = waypointY[i];
       oam_spr(x*8, y*8-1, 0x18, 0, 0);
-      delay(8);      
+      delay(2);      
     }    
     ppu_wait_nmi();
   };
