@@ -18,9 +18,9 @@ Finally, turn on the PPU to display video.
 
 // main function, run after console reset
 
-static int16_t i, x, y, wp;
-
+static int16_t i, wp;
 static int16_t c, k;
+static uint8_t x, y;
 
 char value[6];
 
@@ -88,13 +88,13 @@ void main(void) {
   ppu_on_all();
 
   // infinite loop
-  while (1) {
-    for (i = 0; i < k; ++i) {    
-      x = waypointX[i];
-      y = waypointY[i];
-      oam_spr(x*8, y*8-1, 0x18, 0, 0);
-      delay(2);      
-    }    
+  i = 0;
+  while (1) {     
+    x = waypointX[i];
+    y = waypointY[i];
+    oam_spr(x*8, y*8-1, 0x18, 0, 0);
+    if (++i == k - 1) i = 0;
+    delay(2);    
     ppu_wait_nmi();
   };
 }
