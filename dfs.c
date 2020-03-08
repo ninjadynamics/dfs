@@ -50,19 +50,18 @@ const char area[32][32] = {
 };
 
 
-uint8_t            waypointX[256];
-uint8_t            waypointY[256];
+uint8_t          waypointX[256];
+uint8_t          waypointY[256];
 
-static int16_t     waypointX_index;
-static int16_t     waypointY_index;
+static int16_t   waypointX_index;
+static int16_t   waypointY_index;
 
-//static uint16_t    stack[256];
 #define stack    (*(volatile int16_t (*)[1024])(0x6000))
 
 static int16_t   stack_index;
 
-static int16_t i, num_nodes;
-static int16_t c, k;
+static int16_t   i, num_nodes;
+static int16_t   c, k;
 
 static int16_t   x;
 static int16_t   y;
@@ -361,13 +360,9 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     POP(waypointY);
   }
   
-  // Optimize path
+  // TODO: Get rid of waypoints, use the stack
   
-  // TODO: Everytime a waypoint is pushed, push a direction instead
-  //       Keep track of the active direction and the number of
-  //       steps in that direction.
-  //       Result: U8R1U2R2D2R3U5  
-  
+  // Optimize path  
   num_nodes = (waypointX_index + 1);
   k = 0; i = 0;
   while (i < num_nodes) {
