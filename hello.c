@@ -19,15 +19,9 @@ Finally, turn on the PPU to display video.
 // main function, run after console reset
 
 static int16_t i, wp;
-static int16_t c, k;
 static uint8_t x, y;
 
 char value[6];
-
-#define COST(a, b) ( \
-  ABS_DIFF(waypointX[a], waypointX[b]) + \
-  ABS_DIFF(waypointY[a], waypointY[b]) \
-)
 
 /*{pal:"nes",layout:"nes"}*/
 const char PALETTE[32] = { 
@@ -56,20 +50,7 @@ void main(void) {
     }
   }
   
-  wp = solve(28, 25, 14, 4); 
-  
-  k = 0; i = 0;
-  while (i < wp) {
-    for (c = i + 2; c < wp; ++c) {
-      if (COST(i, c) == 1) {        
-        i = c - 1;
-        break;
-      }
-    } 
-    ++i; ++k;
-    waypointX[k] = waypointX[i];
-    waypointY[k] = waypointY[i];   
-  } wp = k;
+  wp = solve(28, 25, 14, 4);
   
   if (!wp) {
     vram_adr(NTADR_A(3, 2));

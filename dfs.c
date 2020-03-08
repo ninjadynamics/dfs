@@ -46,7 +46,7 @@ const char area[32][32] = {
   {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"},
   {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"},
   {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"},
-  {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"}  
+  {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"}
 };
 
 
@@ -56,15 +56,16 @@ uint8_t            waypointY[256];
 static int16_t     waypointX_index;
 static int16_t     waypointY_index;
 
-uint16_t    highest;
-
 //static uint16_t    stack[256];
 #define stack    (*(volatile int16_t (*)[1024])(0x6000))
 
 static int16_t   stack_index;
 
+static int16_t i, num_nodes;
+static int16_t c, k;
+
 static int16_t   x;
-static int16_t   y; 
+static int16_t   y;
 static int16_t   distX;
 static int16_t   distY;
 
@@ -110,55 +111,60 @@ static bool      is_horizontal;
   BIT_ARRAY_VALUE(visited, visited_index) == 0 \
 )
 
-static int16_t result;
-int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {  
-    
+#define COST(a, b) ( \
+  ABS_DIFF(waypointX[a], waypointX[b]) + \
+  ABS_DIFF(waypointY[a], waypointY[b]) \
+)
+
+//uint16_t highest;
+
+int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
+
   // Return if invalid destination
   if ((sx == dx && sy == dy) || VALUE_AT(dx, dy)) return false;
-  
+
   // Reset the stack
   for (stack_index = 0; stack_index < SIZE_OF_ARRAY(stack); ++stack_index) {
     stack[stack_index] = NULL;
-  }  
-  
+  }
+
   // Reset the visited map
   for (visited_index = 0; visited_index < SIZE_OF_ARRAY(visited); ++visited_index) {
     visited[visited_index] = NULL;
-  }    
-  
+  }
+
   startX = sx;
   startY = sy;
-  
+
   destX  = dx;
-  destY  = dy;    
-  
+  destY  = dy;
+
   // Start (x, y) index
   index = (startY * SIZE_X) + startX;
-  
-  // Destination (x, y) index 
-  destIndex = (destY  * SIZE_X) + destX;  
-  
+
+  // Destination (x, y) index
+  destIndex = (destY  * SIZE_X) + destX;
+
   // Empty the stack
   stack_index = -1;
-  
+
   // Empty the waypoints
   waypointX_index = -1;
   waypointY_index = -1;
-  
+
   //Initializes the result and sets the first stack frame
-  result = false;
-  PUSH(stack, index);  
-  
-  while (!EMPTY(stack)) {    
-    
-    if (stack_index + 1 > highest) highest = stack_index + 1;
-    
+  PUSH(stack, index);
+
+  while (!EMPTY(stack)) {
+
+    //if (stack_index + 1 > highest) highest = stack_index + 1;
+
     //Gets the index from the top of the Stack
     index = TOP(stack);
 
-    //Marks as visited    
+    //Marks as visited
     SET_VISITED_AT(index + 1);
-    
+
     //Computes the is_horizontal and vertical distances
     y = index / SIZE_X;
     x = index % SIZE_X;
@@ -166,38 +172,21 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     distY = destY - y;
 
     //If the goal is reached...
-    if (index == destIndex) {      
+    if (index == destIndex) {
       PUSH(waypointX, x);
       PUSH(waypointY, y);
-      result = true;
       break;
     }
 
-    //Selects the axis to follow    
+    //Selects the axis to follow
     is_horizontal = ABS(distX) > ABS(distY);
-    
-    /*    
-    is_horizontal = false;
-    if (distX > 0) {
-      if (distY > 0) {
-        is_horizontal = (distX > distY);
-      } else {
-        is_horizontal = (distX > -distY);
-      }
-    } else {
-      if (distY > 0) {
-        is_horizontal = (-distX > distY);
-      } else {
-        is_horizontal = (-distX > -distY);
-      }
-    }*/
 
     //Selects the next cell to visit
     newIndex = 0;
     if (is_horizontal) {
       //The is_horizontal axis is explored first
-      if (distX > 0) { //On the left -> to the right 
-        if (x != (SIZE_X - 1) && VALUE_AT(x + 1, y) == 0) {          
+      if (distX > 0) { //On the left -> to the right
+        if (x != (SIZE_X - 1) && VALUE_AT(x + 1, y) == 0) {
           newIndex = index + 1;
           if (NOT_VISITED(newIndex + 1)) {
             PUSH(waypointX, x);
@@ -280,7 +269,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
         }
       }
     } else {
-      //The vertical axis is explored first		
+      //The vertical axis is explored first
       if (distY > 0) { //Too low -> to the top
         if (y != (SIZE_Y - 1) && VALUE_AT(x, y + 1) == 0) {
           newIndex = index + SIZE_X;
@@ -368,14 +357,25 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
 
     //Removes the current cell from the solution array
     POP(stack);
-    
-    if ((waypointX_index + 1) + (waypointY_index + 1) >= 2) {
-      POP(waypointX);
-      POP(waypointY);
-    }    
-    result = false;    
+    POP(waypointX);
+    POP(waypointY);
   }
-  result = (waypointX_index + 1);
-  return result;
+  
+  // Optimize path
+  num_nodes = (waypointX_index + 1);
+  k = 0; i = 0;
+  while (i < num_nodes) {
+    for (c = i + 2; c < num_nodes; ++c) {
+      if (COST(i, c) == 1) {        
+        i = c - 1;
+        break;
+      }
+    } 
+    ++i; ++k;
+    waypointX[k] = waypointX[i];
+    waypointY[k] = waypointY[i];   
+  } 
+  
+  return k;
   //Based on Informatix's SDA algorithm: www.b4x.com/android/forum/threads/optimization-with-b4a.57913
 }
