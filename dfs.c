@@ -362,6 +362,12 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   }
   
   // Optimize path
+  
+  // TODO: Everytime a waypoint is pushed, push a direction instead
+  //       Keep track of the active direction and the number of
+  //       steps in that direction.
+  //       Result: U8R1U2R2D2R3U5  
+  
   num_nodes = (waypointX_index + 1);
   k = 0; i = 0;
   while (i < num_nodes) {
