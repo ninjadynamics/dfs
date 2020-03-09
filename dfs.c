@@ -63,8 +63,8 @@ static int16_t   stack_index;
 static int16_t   i, num_nodes;
 static int16_t   c, k;
 
-static int16_t   x;
-static int16_t   y;
+static uint8_t   x;
+static uint8_t   y;
 static int16_t   distX;
 static int16_t   distY;
 
@@ -110,11 +110,6 @@ static bool      is_horizontal;
   BIT_ARRAY_VALUE(visited, visited_index) == 0 \
 )
 
-#define COST(a, b) ( \
-  ABS_DIFF(waypointX[a], waypointX[b]) + \
-  ABS_DIFF(waypointY[a], waypointY[b]) \
-)
-
 //uint16_t highest;
 
 int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
@@ -142,7 +137,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   index = (startY * SIZE_X) + startX;
 
   // Destination (x, y) index
-  destIndex = (destY  * SIZE_X) + destX;
+  destIndex = (destY * SIZE_X) + destX;
 
   // Empty the stack
   stack_index = -1;
@@ -165,8 +160,9 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     SET_VISITED_AT(index + 1);
 
     //Computes the is_horizontal and vertical distances
-    y = index / SIZE_X;
-    x = index % SIZE_X;
+    //Note: SIZE_X must be a power of 2!
+    y = index / (SIZE_X    );
+    x = index & (SIZE_X - 1);
     distX = destX - x;
     distY = destY - y;
 
@@ -358,12 +354,16 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     POP(stack);
     POP(waypointX);
     POP(waypointY);
-  }
-  
-  // TODO: Get rid of waypoints, use the stack
-  
-  // Optimize path  
-  num_nodes = (waypointX_index + 1);
+  }    
+ 
+  // Optimize path    
+  #define COST(a, b) ( \
+    sx = waypointX[a], sy = waypointY[a], \
+    dx = waypointX[b], dy = waypointY[b], \
+    ABS_DIFF(sx, dx) + \
+    ABS_DIFF(sy, dy) \
+  )  
+  num_nodes = (stack_index + 1);
   k = 0; i = 0;
   while (i < num_nodes) {
     for (c = i + 2; c < num_nodes; ++c) {
@@ -375,7 +375,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     ++i; ++k;
     waypointX[k] = waypointX[i];
     waypointY[k] = waypointY[i];   
-  } 
+  }   
   
   return k;
   //Based on Informatix's SDA algorithm: www.b4x.com/android/forum/threads/optimization-with-b4a.57913
