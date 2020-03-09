@@ -87,7 +87,7 @@ void main(void) {
   draw_map();
     
   //wp = solve(28, 25, 18, 4);
-  wp = solve(28, 25, 16, 4);
+  wp = solve(28, 25, 18, 4);
   
   if (!wp) {
     vram_adr(NTADR_A(3, 2));

@@ -5,9 +5,9 @@
 #define BIT_OFF(v, n)             (v &= ~(ONE << n))
 #define BIT_VALUE(v, n)           ((v >> n) & ONE)
 #define BIT_TOGGLE(v, n)          (v ^= ONE << n)
-#define BIT_ARRAY_SET(a, i)       BIT_ON(a[(i) >> 3], (i & 0x07))
-#define BIT_ARRAY_UNSET(a, i)     BIT_OFF(a[(i) >> 3], (i & 0x07))
-#define BIT_ARRAY_VALUE(a, i)     BIT_VALUE(a[(i) >> 3], (i & 0x07))
+#define BIT_ARRAY_SET(a, i)       BIT_ON(a[((i) / 8)], (i & 0x07))
+#define BIT_ARRAY_UNSET(a, i)     BIT_OFF(a[((i) / 8)], (i & 0x07))
+#define BIT_ARRAY_VALUE(a, i)     BIT_VALUE(a[((i) / 8)], (i & 0x07))
 
 #define SIZE_X 32
 #define SIZE_Y 32
