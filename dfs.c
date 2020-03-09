@@ -56,7 +56,8 @@ uint8_t          waypointY[256];
 static int16_t   waypointX_index;
 static int16_t   waypointY_index;
 
-#define stack    (*(volatile int16_t (*)[1024])(0x6000))
+#define stack    (*(volatile int16_t (*)[256])(0x6000))
+//uint16_t          stack[256];
 
 static int16_t   stack_index;
 
@@ -79,6 +80,8 @@ static int16_t   destIndex;
 static int16_t   newIndex;
 
 static bool      is_horizontal;
+
+static uint8_t   pass;
 
 #define VALUE_AT(x, y) ( \
   area[y][x] != ' ' ? 1 : 0 \
@@ -109,8 +112,6 @@ static bool      is_horizontal;
   visited_index = i, \
   BIT_ARRAY_VALUE(visited, visited_index) == 0 \
 )
-
-//uint16_t highest;
 
 int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
 
@@ -149,32 +150,33 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   //Initializes the result and sets the first stack frame
   PUSH(stack, index);
 
-  while (!EMPTY(stack)) {
-
-    //if (stack_index + 1 > highest) highest = stack_index + 1;
+  while (!EMPTY(stack)) {    
 
     //Gets the index from the top of the Stack
     index = TOP(stack);
 
     //Marks as visited
     SET_VISITED_AT(index + 1);
+    
+    //if (stack_index > 255) stack_index = 0;
 
     //Computes the is_horizontal and vertical distances
     //Note: SIZE_X must be a power of 2!
-    y = index / (SIZE_X    );
+    y = index / (SIZE_X - 0);
     x = index & (SIZE_X - 1);
     distX = destX - x;
     distY = destY - y;
-
+    
     //If the goal is reached...
-    if (index == destIndex) {
+    if (index == destIndex) {      
       PUSH(waypointX, x);
-      PUSH(waypointY, y);
-      break;
-    }
+      PUSH(waypointY, y);  
+      ++stack_index;
+      break;    
+    }    
 
     //Selects the axis to follow
-    is_horizontal = ABS(distX) > ABS(distY);
+    is_horizontal = ABS(distX) < ABS(distY);
 
     //Selects the next cell to visit
     newIndex = 0;
@@ -351,9 +353,11 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     }
 
     //Removes the current cell from the solution array
-    POP(stack);
-    POP(waypointX);
-    POP(waypointY);
+    if (stack_index) {
+      POP(stack);
+      POP(waypointX);
+      POP(waypointY);
+    }
   }    
  
   // Optimize path    
@@ -363,20 +367,23 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     ABS_DIFF(sx, dx) + \
     ABS_DIFF(sy, dy) \
   )  
-  num_nodes = (stack_index + 1);
-  k = 0; i = 0;
-  while (i < num_nodes) {
-    for (c = i + 2; c < num_nodes; ++c) {
-      if (COST(i, c) == 1) {        
-        i = c - 1;
-        break;
-      }
-    } 
-    ++i; ++k;
-    waypointX[k] = waypointX[i];
-    waypointY[k] = waypointY[i];   
-  }   
+  num_nodes = stack_index;
+  for (pass = 0; pass < 3; ++pass) {
+    k = 0; i = 0;
+    while (i < num_nodes) {
+      for (c = i + 2; c < num_nodes; ++c) {
+        if (COST(i, c) == 1) {        
+          i = c - 1;
+          break;
+        }
+      } 
+      ++i; ++k;
+      waypointX[k] = waypointX[i];
+      waypointY[k] = waypointY[i];    
+    }   
+    num_nodes = k;  
+  }
   
-  return k;
+  return num_nodes;
   //Based on Informatix's SDA algorithm: www.b4x.com/android/forum/threads/optimization-with-b4a.57913
 }
