@@ -54,27 +54,27 @@ const char area[32][32] = {
 uint8_t          waypointX[256];
 uint8_t          waypointY[256];
 
-static int16_t   waypointX_index;
-static int16_t   waypointY_index;
+static uint8_t   waypointX_index;
+static uint8_t   waypointY_index;
 
 #define stack    (*(volatile int16_t (*)[256])(0x6000))
 //uint16_t          stack[256];
 
 static int16_t   stack_index;
 
-static int16_t   i, num_nodes;
-static int16_t   c, k;
+static uint8_t   i, num_nodes;
+static uint8_t   c, k;
 
 static uint8_t   x;
 static uint8_t   y;
-static int16_t   distX;
-static int16_t   distY;
+static int8_t    distX;
+static int8_t    distY;
 
 static bit8_t    visited[1024/8];
 static uint16_t  visited_index;
 
-static int16_t   startX, startY;
-static int16_t   destX, destY;
+static uint8_t   startX, startY;
+static uint8_t   destX, destY;
 
 static int16_t   index;
 static int16_t   destIndex;
@@ -120,7 +120,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   pass = 0;
   
   // Return if invalid destination
-  if ((sx == dx && sy == dy) || VALUE_AT(dx, dy)) return false;  
+  if ((sx == dx && sy == dy) || VALUE_AT(sx, sy) || VALUE_AT(dx, dy)) return false;  
   
   solve:
   ++pass;
@@ -184,7 +184,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     distX = destX - x;
     distY = destY - y;
     
-    //If the goal is51 02                             _index reached...
+    //If the goal is reached...
     if (index == destIndex) {      
       PUSH(waypointX, x);
       PUSH(waypointY, y);  
