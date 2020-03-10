@@ -5,9 +5,10 @@
 #define BIT_OFF(v, n)             (v &= ~(ONE << n))
 #define BIT_VALUE(v, n)           ((v >> n) & ONE)
 #define BIT_TOGGLE(v, n)          (v ^= ONE << n)
-#define BIT_ARRAY_SET(a, i)       BIT_ON(a[((i) / 8)], (i & 0x07))
-#define BIT_ARRAY_UNSET(a, i)     BIT_OFF(a[((i) / 8)], (i & 0x07))
-#define BIT_ARRAY_VALUE(a, i)     BIT_VALUE(a[((i) / 8)], (i & 0x07))
+
+#define BIT_ARRAY_SET(a, i)       BIT_ON(    a[(i) / 8], (i % 8) )
+#define BIT_ARRAY_UNSET(a, i)     BIT_OFF(   a[(i) / 8], (i % 8) )
+#define BIT_ARRAY_VALUE(a, i)     BIT_VALUE( a[(i) / 8], (i % 8) )
 
 #define SIZE_X 32
 #define SIZE_Y 32
@@ -81,7 +82,7 @@ static int16_t   newIndex;
 
 static bool      is_horizontal;
 
-static uint8_t   pass;
+static uint8_t   pass, tmp, end;
 
 #define VALUE_AT(x, y) ( \
   area[y][x] != ' ' ? 1 : 0 \
@@ -114,9 +115,15 @@ static uint8_t   pass;
 )
 
 int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
-
+  
+  // Init
+  pass = 0;
+  
   // Return if invalid destination
-  if ((sx == dx && sy == dy) || VALUE_AT(dx, dy)) return false;
+  if ((sx == dx && sy == dy) || VALUE_AT(dx, dy)) return false;  
+  
+  solve:
+  ++pass;
 
   // Reset the stack
   for (stack_index = 0; stack_index < SIZE_OF_ARRAY(stack); ++stack_index) {
@@ -151,23 +158,33 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   PUSH(stack, index);
 
   while (!EMPTY(stack)) {    
+    
+    //Try again in reverse
+    if (stack_index > 255) {
+      if (pass < 2) {
+        x  = dx; y  = dy;
+        dx = sx; dy = sy;
+        sx =  x; sy =  y;
+        goto solve;
+      }
+      return 0;
+    }
 
     //Gets the index from the top of the Stack
     index = TOP(stack);
 
     //Marks as visited
-    SET_VISITED_AT(index + 1);
+    SET_VISITED_AT(index + 1);    
     
-    //if (stack_index > 255) stack_index = 0;
 
     //Computes the is_horizontal and vertical distances
     //Note: SIZE_X must be a power of 2!
-    y = index / (SIZE_X - 0);
-    x = index & (SIZE_X - 1);
+    y = index / SIZE_X;
+    x = index % SIZE_X;
     distX = destX - x;
     distY = destY - y;
     
-    //If the goal is reached...
+    //If the goal is51 02                             _index reached...
     if (index == destIndex) {      
       PUSH(waypointX, x);
       PUSH(waypointY, y);  
@@ -353,12 +370,29 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     }
 
     //Removes the current cell from the solution array
-    if (stack_index) {
+    if (stack_index >= 0) {      
       POP(stack);
       POP(waypointX);
       POP(waypointY);
     }
-  }    
+  }
+  
+  if (pass > 1) {
+    end = stack_index - 1;
+    for (i = 0; i < stack_index / 2; ++i) {
+      tmp = waypointX[i];
+      waypointX[i] = waypointX[end];
+      waypointX[end] = tmp;
+      --end;
+    }
+    end = stack_index - 1;
+    for (i = 0; i < stack_index / 2; ++i) {
+      tmp = waypointY[i];
+      waypointY[i] = waypointY[end];
+      waypointY[end] = tmp;
+      --end;
+    }   
+  }
  
   // Optimize path    
   #define COST(a, b) ( \
@@ -368,12 +402,14 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     ABS_DIFF(sy, dy) \
   )  
   num_nodes = stack_index;
-  for (pass = 0; pass < 3; ++pass) {
+  do {
+    pass = TRUE;
     k = 0; i = 0;
     while (i < num_nodes) {
       for (c = i + 2; c < num_nodes; ++c) {
         if (COST(i, c) == 1) {        
           i = c - 1;
+          pass = FALSE;
           break;
         }
       } 
@@ -382,7 +418,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
       waypointY[k] = waypointY[i];    
     }   
     num_nodes = k;  
-  }
+  } while (!pass);
   
   return num_nodes;
   //Based on Informatix's SDA algorithm: www.b4x.com/android/forum/threads/optimization-with-b4a.57913
