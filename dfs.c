@@ -50,20 +50,19 @@ const char area[32][32] = {
   {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"}
 };
 
-
-uint8_t          waypointX[256];
-uint8_t          waypointY[256];
-
-static uint8_t   waypointX_index;
-static uint8_t   waypointY_index;
-
-#define stack    (*(volatile int16_t (*)[256])(0x6000))
-//uint16_t          stack[256];
-
+#define stack    (*(volatile int16_t (*)[STACK_SIZE])(0x6000))
 static int16_t   stack_index;
 
-static uint8_t   i, num_nodes;
-static uint8_t   c, k;
+static int16_t   waypointX_index;
+static int16_t   waypointY_index;
+
+static int16_t   index;
+static int16_t   destIndex;
+static int16_t   newIndex;
+
+static uint32_t  i; 
+static uint16_t  c, k;
+static uint16_t  num_nodes;
 
 static uint8_t   x;
 static uint8_t   y;
@@ -71,18 +70,15 @@ static int8_t    distX;
 static int8_t    distY;
 
 static bit8_t    visited[1024/8];
-static uint16_t  visited_index;
+static int16_t   visited_index;
 
 static uint8_t   startX, startY;
 static uint8_t   destX, destY;
 
-static int16_t   index;
-static int16_t   destIndex;
-static int16_t   newIndex;
-
 static bool      is_horizontal;
 
-static uint8_t   pass, tmp, end;
+static uint8_t   pass, tmp;
+static int16_t   end;
 
 #define VALUE_AT(x, y) ( \
   area[y][x] != ' ' ? 1 : 0 \
@@ -101,7 +97,7 @@ static uint8_t   pass, tmp, end;
 )
 
 #define EMPTY(s) ( \
-  s##_index == -1 \
+  s##_index < 0 \
 )
 
 #define SET_VISITED_AT(i) (\
@@ -125,8 +121,8 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   solve:
   ++pass;
 
-  // Reset the stack
-  for (stack_index = 0; stack_index < SIZE_OF_ARRAY(stack); ++stack_index) {
+  // Reset the stack  
+  for (stack_index = 0; stack_index < STACK_SIZE; ++stack_index) {
     stack[stack_index] = NULL;
   }
 
@@ -160,14 +156,14 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   while (!EMPTY(stack)) {    
     
     //Try again in reverse
-    if (stack_index > 255) {
+    if (stack_index > STACK_SIZE - 1) {
       if (pass < 2) {
         x  = dx; y  = dy;
         dx = sx; dy = sy;
         sx =  x; sy =  y;
         goto solve;
-      }
-      return 0;
+      }      
+      return NULL;
     }
 
     //Gets the index from the top of the Stack
