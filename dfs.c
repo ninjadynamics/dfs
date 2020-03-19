@@ -6,9 +6,9 @@
 #define BIT_VALUE(v, n)           ((v >> n) & ONE)
 #define BIT_TOGGLE(v, n)          (v ^= ONE << n)
 
-#define BIT_ARRAY_SET(a, i)       BIT_ON(    a[(i) / 8], (i % 8) )
-#define BIT_ARRAY_UNSET(a, i)     BIT_OFF(   a[(i) / 8], (i % 8) )
-#define BIT_ARRAY_VALUE(a, i)     BIT_VALUE( a[(i) / 8], (i % 8) )
+#define BIT_ARRAY_SET(a, i)       BIT_ON(    a[(i) / 8], ((i) % 8) )
+#define BIT_ARRAY_UNSET(a, i)     BIT_OFF(   a[(i) / 8], ((i) % 8) )
+#define BIT_ARRAY_VALUE(a, i)     BIT_VALUE( a[(i) / 8], ((i) % 8) )
 
 #define SIZE_X 32
 #define SIZE_Y 32
@@ -50,7 +50,7 @@ const char area[32][32] = {
   {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"}
 };
 
-#define stack    (*(volatile int16_t (*)[STACK_SIZE])(0x6000))
+#define stack    (*(volatile uint16_t (*)[STACK_SIZE])(0x6000))
 
 // Stack index goes negative
 static int16_t   stack_index;
@@ -423,7 +423,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     while (i < num_nodes) {
       // WORKAROUND: I don't understand this cast to 32-bit
       // but it seems to be absolutely necessary! WTF!?
-      for (c = (uint32_t)i + 2; c < num_nodes; ++c) {
+      for (c = i + 2; c < num_nodes; ++c) {
         if (COST(i, c) == 1) {        
           i = c - 1;
           pass = FALSE;
