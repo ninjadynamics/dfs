@@ -423,7 +423,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     while (i < num_nodes) {
       // WORKAROUND: I don't understand this cast to 32-bit
       // but it seems to be absolutely necessary! WTF!?
-      for (c = (int32_t)i + 2; c < num_nodes; ++c) {
+      for (c = (uint32_t)i + 2; c < num_nodes; ++c) {
         if (COST(i, c) == 1) {        
           i = c - 1;
           pass = FALSE;
