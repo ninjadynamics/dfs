@@ -60,7 +60,7 @@ static int16_t   index;
 static int16_t   destIndex;
 static int16_t   newIndex;
 
-static uint32_t  i; 
+static uint16_t  i; 
 static uint16_t  c, k;
 static uint16_t  num_nodes;
 
@@ -111,31 +111,40 @@ static int16_t   end;
 )
 
 int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
-  
+
   // Init
   pass = 0;
   
   // Return if invalid destination
   if ((sx == dx && sy == dy) || VALUE_AT(sx, sy) || VALUE_AT(dx, dy)) return false;  
   
+  // Start solving
   solve:
   ++pass;
 
-  // Reset the stack  
+  // Reset the stack
   for (stack_index = 0; stack_index < STACK_SIZE; ++stack_index) {
     stack[stack_index] = NULL;
   }
+  
+  // Reset the waypoints
+  for (stack_index = 0; stack_index < STACK_SIZE; ++stack_index) {
+    waypointX[stack_index] = NULL;
+    waypointY[stack_index] = NULL;
+  }  
 
   // Reset the visited map
   for (visited_index = 0; visited_index < SIZE_OF_ARRAY(visited); ++visited_index) {
     visited[visited_index] = NULL;
   }
 
+  // Get the start point
   startX = sx;
   startY = sy;
 
-  destX  = dx;
-  destY  = dy;
+  // Get the end point
+  destX = dx;
+  destY = dy;
 
   // Start (x, y) index
   index = (startY * SIZE_X) + startX;
@@ -153,8 +162,8 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   //Initializes the result and sets the first stack frame
   PUSH(stack, index);
 
-  while (!EMPTY(stack)) {    
-    
+  while (!EMPTY(stack)) {
+
     //Try again in reverse
     if (stack_index > STACK_SIZE - 1) {
       if (pass < 2) {
@@ -170,8 +179,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     index = TOP(stack);
 
     //Marks as visited
-    SET_VISITED_AT(index + 1);    
-    
+    SET_VISITED_AT(index + 1);
 
     //Computes the is_horizontal and vertical distances
     //Note: SIZE_X must be a power of 2!
@@ -179,17 +187,17 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     x = index % SIZE_X;
     distX = destX - x;
     distY = destY - y;
-    
+
     //If the goal is reached...
-    if (index == destIndex) {      
+    if (index == destIndex) {
       PUSH(waypointX, x);
-      PUSH(waypointY, y);  
+      PUSH(waypointY, y);
       ++stack_index;
-      break;    
-    }    
+      break;
+    }
 
     //Selects the axis to follow
-    is_horizontal = ABS(distX) < ABS(distY);
+    is_horizontal = ABS(distX) > ABS(distY);
 
     //Selects the next cell to visit
     newIndex = 0;
@@ -367,10 +375,10 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
 
     //Removes the current cell from the solution array
     if (stack_index >= 0) {      
-      POP(stack);
-      POP(waypointX);
-      POP(waypointY);
-    }
+    POP(stack);
+    POP(waypointX);
+    POP(waypointY);
+  }    
   }
   
   if (pass > 1) {
@@ -397,7 +405,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     ABS_DIFF(sx, dx) + \
     ABS_DIFF(sy, dy) \
   )  
-  num_nodes = stack_index;
+  num_nodes = stack_index;return num_nodes;
   do {
     pass = TRUE;
     k = 0; i = 0;
@@ -411,7 +419,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
       } 
       ++i; ++k;
       waypointX[k] = waypointX[i];
-      waypointY[k] = waypointY[i];    
+      waypointY[k] = waypointY[i];   
     }   
     num_nodes = k;  
   } while (!pass);
