@@ -51,34 +51,46 @@ const char area[32][32] = {
 };
 
 #define stack    (*(volatile int16_t (*)[STACK_SIZE])(0x6000))
+
+// Stack index goes negative
 static int16_t   stack_index;
 
+// Waypoint indexes go negative
 static int16_t   waypointX_index;
 static int16_t   waypointY_index;
 
-static int16_t   index;
-static int16_t   destIndex;
-static int16_t   newIndex;
+// Always positive [0..1023]
+static uint16_t  index;
+static uint16_t  destIndex;
+static uint16_t  newIndex;
 
+// Always positive
 static uint16_t  i; 
 static uint16_t  c, k;
 static uint16_t  num_nodes;
+static uint16_t  end;
 
+// Always positive [0..31]
 static uint8_t   x;
 static uint8_t   y;
+static uint8_t   tmp;
+
+// Distances go negative
 static int8_t    distX;
 static int8_t    distY;
 
+// Visited index goes negative
 static bit8_t    visited[1024/8];
 static int16_t   visited_index;
 
+// Always positive [0..31]
 static uint8_t   startX, startY;
 static uint8_t   destX, destY;
 
+// Control variables
 static bool      is_horizontal;
+static uint8_t   pass;
 
-static uint8_t   pass, tmp;
-static int16_t   end;
 
 #define VALUE_AT(x, y) ( \
   area[y][x] != ' ' ? 1 : 0 \
@@ -181,8 +193,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     //Marks as visited
     SET_VISITED_AT(index + 1);
 
-    //Computes the is_horizontal and vertical distances
-    //Note: SIZE_X must be a power of 2!
+    //Computes the is_horizontal and vertical distances    
     y = index / SIZE_X;
     x = index % SIZE_X;
     distX = destX - x;
@@ -374,11 +385,11 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     }
 
     //Removes the current cell from the solution array
-    if (stack_index >= 0) {      
-    POP(stack);
-    POP(waypointX);
-    POP(waypointY);
-  }    
+    if (stack_index >= 0) {
+      POP(stack);
+      POP(waypointX);
+      POP(waypointY);
+    }
   }
   
   if (pass > 1) {
@@ -405,12 +416,14 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     ABS_DIFF(sx, dx) + \
     ABS_DIFF(sy, dy) \
   )  
-  num_nodes = stack_index;return num_nodes;
+  num_nodes = stack_index;//return num_nodes;
   do {
     pass = TRUE;
     k = 0; i = 0;
     while (i < num_nodes) {
-      for (c = i + 2; c < num_nodes; ++c) {
+      // WORKAROUND: I don't understand this cast to 32-bit
+      // but it seems to be absolutely necessary! WTF!?
+      for (c = (int32_t)i + 2; c < num_nodes; ++c) {
         if (COST(i, c) == 1) {        
           i = c - 1;
           pass = FALSE;
