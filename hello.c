@@ -22,8 +22,11 @@ Finally, turn on the PPU to display video.
 
 // main function, run after console reset
 
-static int16_t i, wp;
-static uint8_t x, y;
+static uint16_t wp_i, wp;
+static uint8_t  x, y, sprite;
+
+static uint8_t px, py;
+static int8_t  vx, vy;
 
 char value[6];
 
@@ -66,9 +69,9 @@ void draw_path(void) {
     vram_adr(NTADR_A(3, 2));
     vram_write("           ", 11);              
   }
-  for (i = 0; i < wp; ++i) {    
-    x = waypointX[i];
-    y = waypointY[i];   
+  for (wp_i = 0; wp_i < wp; ++wp_i) {    
+    x = waypointX[wp_i];
+    y = waypointY[wp_i];   
     vram_adr(NTADR_A(x, y));
     vram_write("+", 1);   
   }
@@ -110,8 +113,7 @@ void main(void) {
   // enable PPU rendering (turn on screen)
   ppu_on_all();
 
-  // infinite loop
-  i = 0;
+  // infinite loop  
   while (1) {     
     oam_clear();
     sprid = 0;
@@ -130,6 +132,10 @@ void main(void) {
           ppu_on_all();
         }
         else if ((sx && sy) && (!dx && !dy)) {
+          // - - - - -
+          px = sx * 8;
+          py = sy * 8;
+          // - - - - -
           dx = cursor.mx;
           dy = cursor.my;
           wp = solve(sx, sy, dx, dy);          
@@ -137,14 +143,16 @@ void main(void) {
           draw_map();
           draw_path();          
           ppu_on_all();          
+          sprite = 0x18;
+          wp_i = 0;
         }
       }
       if (pad & PAD_B) {
         wp = 0;
-        sx = NULL;;
-        sy = NULL;;
-        dx = NULL;;
-        dy = NULL;;
+        sx = NULL;
+        sy = NULL;
+        dx = NULL;
+        dy = NULL;
         ppu_off();
         draw_map();
         ppu_on_all();
@@ -154,12 +162,30 @@ void main(void) {
     }
     
     if (wp) {
-      x = waypointX[i];
-      y = waypointY[i];
-      sprid = oam_spr(x*8, y*8-1, 0x18, 0, sprid);
-      if (++framecount == 3) {
+      x = waypointX[wp_i];
+      y = waypointY[wp_i];
+            
+      vx = 0;      
+      if (px != x * 8) vx = (px > x * 8) ? -1 : 1;
+      
+      vy = 0;
+      if (py != y * 8) vy = (py > y * 8) ? -1 : 1;
+      
+      px += vx;
+      py += vy;
+      
+      //sprid = oam_spr(x*8, y*8-1, 0x18, 0, sprid);            
+        
+      sprid = oam_spr(px, py-1, sprite, 0, sprid);
+      if (++framecount == 16) {
         framecount = 0;
-        if (++i >= wp) i = 0;  
+        if (++sprite > 0x18 + 2) {          
+          sprite = 0x18;
+        }
+      }
+            
+      if (px == x * 8 && py == y * 8) {        
+        if (++wp_i >= wp) {wp_i = 0; px = sx*8; py = sy*8; }
       }
     }
     if (sx && sy) {

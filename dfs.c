@@ -416,7 +416,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     ABS_DIFF(sx, dx) + \
     ABS_DIFF(sy, dy) \
   )  
-  num_nodes = stack_index;//return num_nodes;
+  num_nodes = stack_index;
   do {
     pass = TRUE;
     k = 0; i = 0;
