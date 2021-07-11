@@ -1,6 +1,6 @@
 /* 
 ============================================================
-Depth-first Search Algorithm - Proof-of-concept - NES MMC3
+Depth-first Search Algorithm - NES Proof-of-concept
 Copyright 2018 - 2021 Ninja Dynamics - See license below
 ============================================================
 Creative Commons - Attribution 3.0 Unported
@@ -26,6 +26,10 @@ Under the following terms:
 
 
 #include "neslib.h"
+
+#include "vrambuf.h"
+//#link "vrambuf.c"
+
 #include "dfs.h"
 //#link "dfs.c"
 
@@ -49,7 +53,7 @@ const char PALETTE[32] = {
   0x0d,0x27,0x2a	// sprite palette 3
 };
 
-unsigned char sprid;
+static uint8_t sprid;
 
 static uint16_t wp_i, wp;
 static uint8_t  x, y, sprite;
@@ -60,6 +64,18 @@ static int8_t  vx, vy;
 static uint8_t sx, sy, dx, dy;
 
 static byte pad;
+
+static uint8_t framecount;
+
+void put_msg(char *msg, int8_t size) {  
+  vrambuf_put(NTADR_A(3, 2), msg, size);
+  ppu_wait_nmi();  
+}
+
+void clear_msg() {  
+  vrambuf_put(NTADR_A(3, 2), "              ", 14);
+  ppu_wait_nmi();  
+}
 
 void draw_map(void) {
   for (y = 0; y < 30; ++y) {
@@ -72,12 +88,10 @@ void draw_map(void) {
 
 void draw_path(void) {
   if (!wp) {
-    vram_adr(NTADR_A(3, 2));
-    vram_write("No solution", 11);    
+    put_msg("No solution", 11);
   }
   else {
-    vram_adr(NTADR_A(3, 2));
-    vram_write("           ", 11);              
+    clear_msg();
   }
   for (wp_i = 0; wp_i < wp; ++wp_i) {    
     x = waypointX[wp_i];
@@ -87,40 +101,30 @@ void draw_path(void) {
   }
 }
 
-byte framecount;
-
 void main(void) {
   
   sx = 0;
   sy = 0;
   dx = 0;
   dy = 0;
+  
+  // clear vram buffer
+  vrambuf_clear();
+  
+  // set NMI handler
+  set_vram_update(updbuf);  
 
+  // Set the colors
   pal_all(PALETTE);  
   
   // Draw area
   draw_map();
-/*    
-  //wp = solve(28, 25, 18, 4);
-  //wp = solve(28, 25, 16, 4);
-  //wp = solve(18, 4, 28, 25);
-  
-  if (!wp) {
-    vram_adr(NTADR_A(3, 2));
-    vram_write("No solution", 11);    
-  }  
-  
-  for (i = 0; i < wp; ++i) {    
-    x = waypointX[i];
-    y = waypointY[i];   
-    vram_adr(NTADR_A(x, y));
-    vram_write("+", 1);   
-  }  
-*/  
+
+  // Cursor
   cursor_init(TILE_MODE, 0x10);
   cursor.state = ON;
   
-  // enable PPU rendering (turn on screen)
+  // Enable PPU rendering (turn on screen)
   ppu_on_all();
 
   // infinite loop  
@@ -142,17 +146,19 @@ void main(void) {
           ppu_on_all();
         }
         else if ((sx && sy) && (!dx && !dy)) {
+          put_msg("Calculating", 11);
           // - - - - -
           px = sx * 8;
           py = sy * 8;
           // - - - - -
           dx = cursor.mx;
-          dy = cursor.my;
+          dy = cursor.my;          
           wp = solve(sx, sy, dx, dy);          
           ppu_off();
+          clear_msg();
           draw_map();
           draw_path();          
-          ppu_on_all();          
+          ppu_on_all();
           sprite = 0x18;
           wp_i = 0;
         }

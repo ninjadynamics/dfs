@@ -1,6 +1,6 @@
 /* 
 ============================================================
-Depth-first Search Algorithm - Proof-of-concept - NES MMC3
+Depth-first Search Algorithm - NES Proof-of-concept
 Copyright 2018 - 2021 Ninja Dynamics - See license below
 ============================================================
 Creative Commons - Attribution 3.0 Unported
