@@ -16,10 +16,10 @@
 typedef uint8_t bit8_t;
 
 const char area[32][32] = {
-  {" !               X            ! "},
-  {" 1               X            0 "},
-  {" 2               X            _ "},
-  {" 3               X XX         | "},
+  {" !               X       X    ! "},
+  {" 1               X       X    0 "},
+  {" 2               X       XXX  _ "},
+  {" 3               X XX      XXX| "},
   {" 4    XXXXX      X            | "},
   {" 5         X     X            | "},
   {" 6X         XXX  XX   XXXXX   | "},
@@ -39,9 +39,9 @@ const char area[32][32] = {
   {" 0                            _ "},
   {" 1  XXXXXXXXXXXXXXXXXXXXXXXXXX| "},
   {" 2                            | "},
-  {" 3                            | "},
-  {" 4X                           | "},
-  {" 5  X      XXXX               | "},
+  {" 3                X     XXX   | "},
+  {" 4X              X X    X X   | "},
+  {" 5  X      XXXX   X     XXX   | "},
   {" 6  X   X                     | "},
   {"X723456789012345678901234567890X"},
   {"X7XXXXXXXXXXXXXXXXXXXXXXXXXXXXFX"},
@@ -392,6 +392,11 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
     }
   }
   
+  // Impossibru!! No solution
+  if (stack_index < 0) return 0;
+  
+  // Give it another go:
+  // Sometimes [B to A] path is better than [A to B]
   if (pass > 1) {
     end = stack_index - 1;
     for (i = 0; i < stack_index / 2; ++i) {
