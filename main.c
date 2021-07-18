@@ -72,11 +72,6 @@ void put_msg(char *msg, int8_t size) {
   ppu_wait_nmi();  
 }
 
-void clear_msg() {  
-  vrambuf_put(NTADR_A(3, 2), "              ", 14);
-  ppu_wait_nmi();  
-}
-
 void draw_map(void) {
   for (y = 0; y < 30; ++y) {
     for (x = 0; x < 32; ++x) {
@@ -91,7 +86,7 @@ void draw_path(void) {
     put_msg("No solution", 11);
   }
   else {
-    clear_msg();
+    vrambuf_clear();
   }
   for (wp_i = 0; wp_i < wp; ++wp_i) {    
     x = waypointX[wp_i];
@@ -129,7 +124,7 @@ void main(void) {
 
   // infinite loop  
   while (1) {     
-    oam_clear();
+    //oam_clear();
     sprid = 0;
     
     if (cursor.state == ON) { 
@@ -155,7 +150,7 @@ void main(void) {
           dy = cursor.my;          
           wp = solve(sx, sy, dx, dy);          
           ppu_off();
-          clear_msg();
+          vrambuf_clear();
           draw_map();
           draw_path();          
           ppu_on_all();
@@ -209,7 +204,8 @@ void main(void) {
     }
     if (dx && dy) {
       sprid = oam_spr(dx*8, dy*8 - 1, 'F', 3, sprid);
-    }      
-    ppu_wait_nmi();    
-  };
+    }
+    ppu_wait_nmi();
+    oam_clear();
+  }
 }

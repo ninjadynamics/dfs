@@ -197,12 +197,12 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   waypointX_index = -1;
   waypointY_index = -1;
 
-  //Initializes the result and sets the first stack frame
+  // Initializes the result and sets the first stack frame
   PUSH(stack, index);
 
   while (!EMPTY(stack)) {
 
-    //Try again in reverse
+    // Try again in reverse
     if (stack_index > STACK_SIZE - 1) {
       if (pass < 2) {
         x  = dx; y  = dy;
@@ -213,19 +213,19 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
       return NULL;
     }
 
-    //Gets the index from the top of the Stack
+    // Gets the index from the top of the Stack
     index = TOP(stack);
 
-    //Marks as visited
+    // Marks as visited
     SET_VISITED_AT(index + 1);
 
-    //Computes the is_horizontal and vertical distances    
+    // Computes the is_horizontal and vertical distances    
     y = index / SIZE_X;
     x = index % SIZE_X;
     distX = destX - x;
     distY = destY - y;
 
-    //If the goal is reached...
+    // If the goal is reached...
     if (index == destIndex) {
       PUSH(waypointX, x);
       PUSH(waypointY, y);
@@ -233,13 +233,13 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
       break;
     }
 
-    //Selects the axis to follow
+    // Selects the axis to follow
     is_horizontal = ABS(distX) > ABS(distY);
 
-    //Selects the next cell to visit
+    // Selects the next cell to visit
     newIndex = 0;
     if (is_horizontal) {
-      //The is_horizontal axis is explored first
+      // The is_horizontal axis is explored first
       if (distX > 0) { //On the left -> to the right
         if (x != (SIZE_X - 1) && VALUE_AT(x + 1, y) == 0) {
           newIndex = index + 1;
@@ -250,7 +250,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
             continue;
           }
         }
-      } else { //On the right -> to the left
+      } else { // On the right -> to the left
         if (x != 0 && VALUE_AT(x - 1, y) == 0) {
           newIndex = index - 1;
           if (NOT_VISITED(newIndex + 1)) {
@@ -261,7 +261,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
           }
         }
       }
-      //Vertical axis
+      // Vertical axis
       if (distY > 0) { //Too low -> to the top
         if (y != (SIZE_Y - 1) && VALUE_AT(x, y + 1) == 0) {
           newIndex = index + SIZE_X;
@@ -281,7 +281,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
             continue;
           }
         }
-      } else { //'Too high -> to the bottom
+      } else { // Too high -> to the bottom
         if (y != 0 && VALUE_AT(x, y - 1) == 0) {
           newIndex = index - SIZE_X;
           if (NOT_VISITED(newIndex + 1)) {
@@ -301,7 +301,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
           }
         }
       }
-      //Last possible direction
+      // Last possible direction
       if (distX > 0) {
         if (x != 0 && VALUE_AT(x - 1, y) == 0) {
           newIndex = index - 1;
@@ -324,7 +324,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
         }
       }
     } else {
-      //The vertical axis is explored first
+      // The vertical axis is explored first
       if (distY > 0) { //Too low -> to the top
         if (y != (SIZE_Y - 1) && VALUE_AT(x, y + 1) == 0) {
           newIndex = index + SIZE_X;
@@ -335,7 +335,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
             continue;
           }
         }
-      } else { //Too high -> to the bottom
+      } else { // Too high -> to the bottom
         if (y != 0 && VALUE_AT(x, y - 1) == 0) {
           newIndex = index - SIZE_X;
           if (NOT_VISITED(newIndex + 1)) {
@@ -346,7 +346,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
           }
         }
       }
-      //Horizontal axis
+      // Horizontal axis
       if (distX > 0) { //On the left -> to the right
         if (x != (SIZE_X - 1) && VALUE_AT(x + 1, y) == 0) {
           newIndex = index + 1;
@@ -366,7 +366,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
             continue;
           }
         }
-      } else { //On the right -> to the left
+      } else { // On the right -> to the left
         if (x != 0 && VALUE_AT(x - 1, y) == 0) {
           newIndex = index - 1;
           if (NOT_VISITED(newIndex + 1)) {
@@ -386,7 +386,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
           }
         }
       }
-      //Last possible direction
+      // Last possible direction
       if (distY > 0) {
         if (y != 0 && VALUE_AT(x, y - 1) == 0) {
           newIndex = index - SIZE_X;
@@ -410,7 +410,7 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
       }
     }
 
-    //Removes the current cell from the solution array
+    // Removes the current cell from the solution array
     if (stack_index >= 0) {
       POP(stack);
       POP(waypointX);
@@ -419,10 +419,9 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   }
   
   // Impossibru!! No solution
-  if (stack_index < 0) return 0;
-  
-  // Give it another go:
-  // Sometimes [B to A] path is better than [A to B]
+  if (stack_index < 0) return 0; 
+ 
+  // Reverse waypoint order
   if (pass > 1) {
     end = stack_index - 1;
     for (i = 0; i < stack_index / 2; ++i) {
@@ -469,5 +468,4 @@ int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   } while (!pass);
   
   return num_nodes;
-  //Based on Informatix's SDA algorithm: www.b4x.com/android/forum/threads/optimization-with-b4a.57913
 }
