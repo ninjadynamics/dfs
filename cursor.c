@@ -52,7 +52,7 @@ void __fastcall__ cursor_init(byte mode, char sprite) {
   (cursor.mx < MAP_SIZE_X && (gamepad_state & PAD_RIGHT) && CURSOR_SCREEN_POSITION < 256 - 16)
 
 #define CURSOR_UP \
-  (cursor.my > 0 && (gamepad_state & PAD_UP))
+  (cursor.my > 1 && (gamepad_state & PAD_UP))
 
 #define CURSOR_DOWN \
   (cursor.my < MAP_SIZE_Y && (gamepad_state & PAD_DOWN))
