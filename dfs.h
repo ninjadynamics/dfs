@@ -53,6 +53,6 @@ extern const char area[32][32];
 #define waypointY    (*(volatile uint8_t (*)[STACK_SIZE])(0x6C00))
 
 void __fastcall__ initialize_solver(void);
-bool __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy);
+int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy);
 
 #endif // dfs.h
