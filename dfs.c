@@ -40,7 +40,7 @@ Under the following terms:
 
 typedef uint8_t bit8_t;
 
-const char area[32][32] = {
+const char area[30][32] = {
   {"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"},
   {"X                              X"},
   {"X                X          X  X"},
@@ -69,10 +69,7 @@ const char area[32][32] = {
   {"X   X      XXXX   X     XXX    X"},
   {"X   X   X                      X"},
   {"X                              X"},
-  {"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"},
-  {"                                "},
-  {"                                "},
-  {"                                "}
+  {"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}
 };
 
 #define stack    (*(volatile uint16_t (*)[STACK_SIZE])(0x6000))
@@ -81,8 +78,7 @@ const char area[32][32] = {
 static int16_t   stack_index;
 
 /* Waypoint indexes go negative */
-static int16_t   waypointX_index;
-static int16_t   waypointY_index;
+static int16_t   waypoint_index;
 
 /* Always positive */
 static uint16_t  index;
@@ -116,10 +112,11 @@ static uint8_t   destX, destY;
 
 /* Control variables */
 static bool      is_horizontal;
+static bool      done;
 static uint8_t   pass;
 
 #define VALUE_AT(x_, y_) ( \
-  area[(y_)][(x_)] != ' ' ? 1 : 0 \
+  area[(y_)][(x_)] != ' ' \
 )
 
 /* NOTE: Do not clear elements on POP; clearing is wasted cycles on NES. */
@@ -137,6 +134,16 @@ static uint8_t   pass;
 
 #define EMPTY(s) ( \
   (s##_index) < 0 \
+)
+
+#define PUSH_WP(x, y) ( \
+  ++waypoint_index, \
+  waypointX[waypoint_index] = (x), \
+  waypointY[waypoint_index] = (y) \
+)
+
+#define POP_WP() ( \
+  --waypoint_index \
 )
 
 #define SET_VISITED_AT(i_) ( \
@@ -186,8 +193,7 @@ solve:
 
   /* Empty the stack and waypoints (logical reset only, no memory clearing) */
   stack_index = -1;
-  waypointX_index = -1;
-  waypointY_index = -1;
+  waypoint_index = -1;
 
   /* Push start and mark visited on push (prevents duplicates) */
   PUSH(stack, index);
@@ -216,9 +222,8 @@ solve:
     /* If the goal is reached... */
     if (index == destIndex) {
       /* Include goal in waypoints */
-      if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-        PUSH(waypointX, x);
-        PUSH(waypointY, y);
+      if (waypoint_index < (STACK_SIZE - 1)) {
+        PUSH_WP(x, y);
       }
       break;
     }
@@ -240,9 +245,8 @@ solve:
         if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
           newIndex = (uint16_t)(index + 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -253,9 +257,8 @@ solve:
         if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
           newIndex = (uint16_t)(index - 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -269,9 +272,8 @@ solve:
         if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
           newIndex = (uint16_t)(index + SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -281,9 +283,8 @@ solve:
         if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
           newIndex = (uint16_t)(index - SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -294,9 +295,8 @@ solve:
         if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
           newIndex = (uint16_t)(index - SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -306,9 +306,8 @@ solve:
         if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
           newIndex = (uint16_t)(index + SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -322,9 +321,8 @@ solve:
         if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
           newIndex = (uint16_t)(index - 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -335,9 +333,8 @@ solve:
         if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
           newIndex = (uint16_t)(index + 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -353,9 +350,8 @@ solve:
         if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
           newIndex = (uint16_t)(index + SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -366,9 +362,8 @@ solve:
         if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
           newIndex = (uint16_t)(index - SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -382,9 +377,8 @@ solve:
         if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
           newIndex = (uint16_t)(index + 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -394,9 +388,8 @@ solve:
         if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
           newIndex = (uint16_t)(index - 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -407,9 +400,8 @@ solve:
         if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
           newIndex = (uint16_t)(index - 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -419,9 +411,8 @@ solve:
         if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
           newIndex = (uint16_t)(index + 1);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -435,9 +426,8 @@ solve:
         if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
           newIndex = (uint16_t)(index - SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -448,9 +438,8 @@ solve:
         if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
           newIndex = (uint16_t)(index + SIZE_X);
           if (NOT_VISITED(newIndex)) {
-            if (waypointX_index < (STACK_SIZE - 1) && waypointY_index < (STACK_SIZE - 1)) {
-              PUSH(waypointX, x);
-              PUSH(waypointY, y);
+            if (waypoint_index < (STACK_SIZE - 1)) {
+              PUSH_WP(x, y);
             }
             PUSH(stack, newIndex);
             SET_VISITED_AT(newIndex);
@@ -463,34 +452,27 @@ solve:
     /* Backtrack: pop current frame + corresponding waypoint entry */
     if (stack_index >= 0) {
       POP(stack);
-      if (waypointX_index >= 0) POP(waypointX);
-      if (waypointY_index >= 0) POP(waypointY);
+      POP_WP();
     }
   }
 
   /* No solution */
   if (EMPTY(stack)) return 0;
-  if (waypointX_index < 0 || waypointY_index < 0) return 0;
+  if (waypoint_index < 0) return 0;
 
   /* Path length is waypoint count */
-  num_nodes = (uint16_t)(waypointX_index + 1);
+  num_nodes = (uint16_t)(waypoint_index + 1);
 
   /* Reverse waypoint order on second pass (kept from original behavior) */
   if (pass > 1) {
     end = (uint16_t)(num_nodes - 1);
-
     for (i = 0; i < (uint16_t)(num_nodes / 2); ++i) {
       tmp = waypointX[i];
       waypointX[i] = waypointX[end];
       waypointX[end] = tmp;
-      --end;
-    }
-
-    end = (uint16_t)(num_nodes - 1);
-    for (i = 0; i < (uint16_t)(num_nodes / 2); ++i) {
       tmp = waypointY[i];
       waypointY[i] = waypointY[end];
-      waypointY[end] = tmp;
+      waypointY[end] = tmp;      
       --end;
     }
   }
@@ -503,15 +485,15 @@ solve:
   )
 
   do {
-    pass = TRUE;
+    done = TRUE;
     k = 0;
     i = 0;
     while (i < num_nodes) {
       /* Keep your original cast workaround */
-      for (c = (uint32_t)i + 2; c < num_nodes; ++c) {
+      for (c = i + 2; c < num_nodes; ++c) {
         if (COST(i, c) == 1) {
-          i = (uint16_t)(c - 1);
-          pass = FALSE;
+          i = c - 1;
+          done = FALSE;
           break;
         }
       }
@@ -523,7 +505,7 @@ solve:
       }
     }
     num_nodes = k;
-  } while (!pass);
+  } while (!done);
 
   return (int16_t)num_nodes;
 }

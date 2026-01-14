@@ -45,9 +45,9 @@ Under the following terms:
   a < b ? b - a : a - b \
 )
 
-#define STACK_SIZE 1024
+#define STACK_SIZE 30*32
 
-extern const char area[32][32];
+extern const char area[30][32];
 
 #define waypointX    (*(volatile uint8_t (*)[STACK_SIZE])(0x6800))
 #define waypointY    (*(volatile uint8_t (*)[STACK_SIZE])(0x6C00))
