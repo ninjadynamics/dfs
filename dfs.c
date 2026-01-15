@@ -1,7 +1,7 @@
 /*
 ============================================================
 Depth-first Search Algorithm - NES Proof-of-concept
-Copyright 2018 - 2021 Ninja Dynamics - See license below
+Copyright 2018 - 2026 Ninja Dynamics - See license below
 ============================================================
 Creative Commons - Attribution 3.0 Unported
 https://creativecommons.org/licenses/by/3.0/legalcode
