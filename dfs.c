@@ -23,14 +23,12 @@ Under the following terms:
     others from doing anything the license permits.
 ============================================================
 */
-
 #include "dfs.h"
 
 #define ONE                       (byte)1
 #define BIT_ON(v, n)              (v |= (ONE << (n)))
 #define BIT_OFF(v, n)             (v &= (byte)~(ONE << (n)))
 #define BIT_VALUE(v, n)           (((v) >> (n)) & ONE)
-
 #define BIT_ARRAY_SET(a, i)       BIT_ON(    (a)[(i) / 8], ((i) % 8) )
 #define BIT_ARRAY_UNSET(a, i)     BIT_OFF(   (a)[(i) / 8], ((i) % 8) )
 #define BIT_ARRAY_VALUE(a, i)     BIT_VALUE( (a)[(i) / 8], ((i) % 8) )
@@ -115,7 +113,12 @@ static bool      is_horizontal;
 static bool      done;
 static uint8_t   pass;
 
-#define VALUE_AT(x_, y_) ( \
+/* Optimization: cache bounds and distance values */
+static uint8_t   can_right, can_left, can_down, can_up;
+static uint8_t   abs_distX, abs_distY;
+static uint8_t   new_x, new_y;
+
+#define IS_SOLID(x_, y_) ( \
   area[(y_)][(x_)] != ' ' \
 )
 
@@ -136,16 +139,6 @@ static uint8_t   pass;
   (s##_index) < 0 \
 )
 
-#define PUSH_WP(x, y) ( \
-  ++waypoint_index, \
-  waypointX[waypoint_index] = (x), \
-  waypointY[waypoint_index] = (y) \
-)
-
-#define POP_WP() ( \
-  --waypoint_index \
-)
-
 #define SET_VISITED_AT(i_) ( \
   visited_index = (uint16_t)(i_), \
   BIT_ARRAY_SET(visited, visited_index) \
@@ -160,47 +153,45 @@ static uint8_t   pass;
 #define IN_BOUNDS_Y(y_) ((y_) < SIZE_Y)
 
 int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
-
   /* Init */
   pass = 0;
-
+  
   /* Reject invalid / degenerate requests */
   if ((sx == dx && sy == dy)) return 0;
   if (!IN_BOUNDS_X(sx) || !IN_BOUNDS_X(dx) || !IN_BOUNDS_Y(sy) || !IN_BOUNDS_Y(dy)) return 0;
-  if (VALUE_AT(sx, sy) || VALUE_AT(dx, dy)) return 0;
+  if (IS_SOLID(sx, sy) || IS_SOLID(dx, dy)) return 0;
 
 solve:
   ++pass;
-
+  
   /* Reset visited map (small: 120 bytes for 32x30) */
   for (visited_index = 0; visited_index < (uint16_t)SIZE_OF_ARRAY(visited); ++visited_index) {
     visited[visited_index] = 0;
   }
-
+  
   /* Get the start point */
   startX = sx;
   startY = sy;
-
+  
   /* Get the end point */
   destX = dx;
   destY = dy;
-
+  
   /* Start (x, y) index */
   index = (uint16_t)((startY * SIZE_X) + startX);
-
+  
   /* Destination (x, y) index */
   destIndex = (uint16_t)((destY * SIZE_X) + destX);
-
+  
   /* Empty the stack and waypoints (logical reset only, no memory clearing) */
   stack_index = -1;
   waypoint_index = -1;
-
+  
   /* Push start and mark visited on push (prevents duplicates) */
   PUSH(stack, index);
   SET_VISITED_AT(index);
-
+  
   while (!EMPTY(stack)) {
-
     /* Guard: avoid writing past arrays (check BEFORE pushing). */
     if (stack_index >= (STACK_SIZE - 1)) {
       if (pass < 2) {
@@ -211,258 +202,215 @@ solve:
       }
       return 0;
     }
-
+    
     /* Get current */
     index = TOP(stack);
-
+    
     /* Compute coordinates */
     y = (uint8_t)(index / SIZE_X);
     x = (uint8_t)(index % SIZE_X);
-
+    
     /* If the goal is reached... */
     if (index == destIndex) {
       /* Include goal in waypoints */
       if (waypoint_index < (STACK_SIZE - 1)) {
-        PUSH_WP(x, y);
+        ++waypoint_index;
+        waypointX[waypoint_index] = x;
+        waypointY[waypoint_index] = y;
       }
       break;
     }
-
+    
     /* Compute distances */
     distX = (int8_t)destX - (int8_t)x;
     distY = (int8_t)destY - (int8_t)y;
-
+    
+    /* Cache absolute distances */
+    abs_distX = ABS(distX);
+    abs_distY = ABS(distY);
+    
     /* Select axis */
-    is_horizontal = (ABS(distX) > ABS(distY));
-
+    is_horizontal = (abs_distX > abs_distY);
+    
+    /* Cache bounds checks */
+    can_right = (x < (SIZE_X - 1));
+    can_left = (x > 0);
+    can_down = (y < (SIZE_Y - 1));
+    can_up = (y > 0);
+    
     /* Select next cell to visit */
     newIndex = 0;
-
+    
     if (is_horizontal) {
-
       /* Horizontal first */
       if (distX > 0) { /* left -> right */
-        if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
-          newIndex = (uint16_t)(index + 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_right) {
+          new_x = x + 1;
+          newIndex = index + 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
       } else { /* right -> left */
-        if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
-          newIndex = (uint16_t)(index - 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_left) {
+          new_x = x - 1;
+          newIndex = index - 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
       }
-
+      
       /* Vertical axis */
       if (distY > 0) { /* low -> up (in your coordinate system) */
-        if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
-          newIndex = (uint16_t)(index + SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_down) {
+          new_y = y + 1;
+          newIndex = index + SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
-        if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
-          newIndex = (uint16_t)(index - SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_up) {
+          new_y = y - 1;
+          newIndex = index - SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
       } else { /* high -> down */
-        if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
-          newIndex = (uint16_t)(index - SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_up) {
+          new_y = y - 1;
+          newIndex = index - SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
-        if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
-          newIndex = (uint16_t)(index + SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_down) {
+          new_y = y + 1;
+          newIndex = index + SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
       }
-
+      
       /* Last possible direction */
       if (distX > 0) {
-        if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
-          newIndex = (uint16_t)(index - 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_left) {
+          new_x = x - 1;
+          newIndex = index - 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
       } else {
-        if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
-          newIndex = (uint16_t)(index + 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_right) {
+          new_x = x + 1;
+          newIndex = index + 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
       }
-
     } else {
-
       /* Vertical first */
       if (distY > 0) { /* low -> up */
-        if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
-          newIndex = (uint16_t)(index + SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_down) {
+          new_y = y + 1;
+          newIndex = index + SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
       } else { /* high -> down */
-        if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
-          newIndex = (uint16_t)(index - SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_up) {
+          new_y = y - 1;
+          newIndex = index - SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
       }
-
+      
       /* Horizontal axis */
       if (distX > 0) { /* left -> right */
-        if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
-          newIndex = (uint16_t)(index + 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_right) {
+          new_x = x + 1;
+          newIndex = index + 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
-        if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
-          newIndex = (uint16_t)(index - 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_left) {
+          new_x = x - 1;
+          newIndex = index - 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
       } else { /* right -> left */
-        if (x != 0 && VALUE_AT((uint8_t)(x - 1), y) == 0) {
-          newIndex = (uint16_t)(index - 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_left) {
+          new_x = x - 1;
+          newIndex = index - 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
-        if (x != (SIZE_X - 1) && VALUE_AT((uint8_t)(x + 1), y) == 0) {
-          newIndex = (uint16_t)(index + 1);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_right) {
+          new_x = x + 1;
+          newIndex = index + 1;
+          if (NOT_VISITED(newIndex) && IS_SOLID(new_x, y) == 0) {
+            goto push_node;
           }
         }
       }
-
+      
       /* Last possible direction */
       if (distY > 0) {
-        if (y != 0 && VALUE_AT(x, (uint8_t)(y - 1)) == 0) {
-          newIndex = (uint16_t)(index - SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_up) {
+          new_y = y - 1;
+          newIndex = index - SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
       } else {
-        if (y != (SIZE_Y - 1) && VALUE_AT(x, (uint8_t)(y + 1)) == 0) {
-          newIndex = (uint16_t)(index + SIZE_X);
-          if (NOT_VISITED(newIndex)) {
-            if (waypoint_index < (STACK_SIZE - 1)) {
-              PUSH_WP(x, y);
-            }
-            PUSH(stack, newIndex);
-            SET_VISITED_AT(newIndex);
-            continue;
+        if (can_down) {
+          new_y = y + 1;
+          newIndex = index + SIZE_X;
+          if (NOT_VISITED(newIndex) && IS_SOLID(x, new_y) == 0) {
+            goto push_node;
           }
         }
       }
     }
-
+    
     /* Backtrack: pop current frame + corresponding waypoint entry */
     if (stack_index >= 0) {
       POP(stack);
-      POP_WP();
+      --waypoint_index;
+    }
+    continue;
+    
+push_node:
+    /* Push waypoint and stack together */
+    if (waypoint_index < (STACK_SIZE - 1)) {
+      ++waypoint_index;
+      waypointX[waypoint_index] = x;
+      waypointY[waypoint_index] = y;
+      ++stack_index;
+      stack[stack_index] = newIndex;
+      SET_VISITED_AT(newIndex);
     }
   }
-
+  
   /* No solution */
   if (EMPTY(stack)) return 0;
   if (waypoint_index < 0) return 0;
-
+  
   /* Path length is waypoint count */
   num_nodes = (uint16_t)(waypoint_index + 1);
-
+  
   /* Reverse waypoint order on second pass (kept from original behavior) */
   if (pass > 1) {
     end = (uint16_t)(num_nodes - 1);
@@ -476,22 +424,22 @@ solve:
       --end;
     }
   }
-
+  
   /* Optimize path */
-  #define COST(a, b) ( \
-    sx = waypointX[(a)], sy = waypointY[(a)], \
-    dx = waypointX[(b)], dy = waypointY[(b)], \
-    (uint16_t)(ABS_DIFF(sx, dx) + ABS_DIFF(sy, dy)) \
-  )
-
   do {
     done = TRUE;
     k = 0;
     i = 0;
     while (i < num_nodes) {
-      /* Keep your original cast workaround */
+      /* Cache current waypoint */
+      sx = waypointX[i];
+      sy = waypointY[i];
+      /* Compare */
       for (c = i + 2; c < num_nodes; ++c) {
-        if (COST(i, c) == 1) {
+        dx = waypointX[c];
+        dy = waypointY[c];
+        /* Manhattan distance check */
+        if ((uint16_t)(ABS_DIFF(sx, dx) + ABS_DIFF(sy, dy)) == 1) {
           i = c - 1;
           done = FALSE;
           break;
@@ -506,6 +454,7 @@ solve:
     }
     num_nodes = k;
   } while (!done);
-
+  
   return (int16_t)num_nodes;
 }
+
