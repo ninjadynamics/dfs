@@ -24,14 +24,30 @@ Under the following terms:
 ============================================================
 */
 
+#define SOLVER astar  /* or dfs */
+
+#define CAT(a,b) a##b
+#define XCAT(a,b) CAT(a,b)
+
+#define SOLVE(sx_, sy_, dx_, dy_) \
+    XCAT(solve_, SOLVER)(sx_, sy_, dx_, dy_)
+
+#define INIT_SOLVER() \
+    XCAT(initialize_, XCAT(SOLVER, _solver))()
 
 #include "neslib.h"
 
 #include "vrambuf.h"
 //#link "vrambuf.c"
 
+#include "area.h"
+//#link "area.c"
+
 #include "dfs.h"
 //#link "dfs.c"
+
+#include "astar.h"
+//#link "astar.c"
 
 #include "cursor.h"
 //#link "cursor.c"
@@ -119,6 +135,9 @@ void main(void) {
   cursor_init(TILE_MODE, 0x10);
   cursor.state = ON;
   
+  // Init
+  INIT_SOLVER();
+  
   // Enable PPU rendering (turn on screen)
   ppu_on_all();
 
@@ -148,7 +167,7 @@ void main(void) {
           // - - - - -
           dx = cursor.mx;
           dy = cursor.my;          
-          wp = solve(sx, sy, dx, dy);          
+          wp = SOLVE(sx, sy, dx, dy);          
           ppu_off();
           vrambuf_clear();
           draw_map();

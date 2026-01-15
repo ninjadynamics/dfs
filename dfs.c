@@ -24,6 +24,7 @@ Under the following terms:
 ============================================================
 */
 #include "dfs.h"
+#include "area.h"
 
 #define ONE                       (byte)1
 #define BIT_ON(v, n)              (v |= (ONE << (n)))
@@ -37,38 +38,6 @@ Under the following terms:
 #define SIZE_Y 30 /* last 2 lines never displayed */
 
 typedef uint8_t bit8_t;
-
-const char area[30][32] = {
-  {"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"},
-  {"X                              X"},
-  {"X                X          X  X"},
-  {"X                X XX  XX XXXX X"},
-  {"X     XXXXX      X             X"},
-  {"X          X     X   X      X  X"},
-  {"X X         XXX  XX   XXXXX    X"},
-  {"X  X          XXXXXXXXXXXXX    X"},
-  {"X   X                          X"},
-  {"X              X               X"},
-  {"X           XXX X  X           X"},
-  {"X XX                      XXXX X"},
-  {"X         X          X   X     X"},
-  {"X       X    X   X    XXXX     X"},
-  {"X  XX XXXX          X          X"},
-  {"X       X                      X"},
-  {"X        X     XXXX   X XXX    X"},
-  {"X     X      X        X XX     X"},
-  {"X         XX         XX  X     X"},
-  {"X XXXXXXXXXXXXXXXXXXXXXXXXXX   X"},
-  {"X                              X"},
-  {"X   XXXXXXXXXXXXXXXXXXXXXXXXXX X"},
-  {"X                              X"},
-  {"X                 X     XXX    X"},
-  {"X X              X X    X X    X"},
-  {"X   X      XXXX   X     XXX    X"},
-  {"X   X   X                      X"},
-  {"X                              X"},
-  {"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}
-};
 
 #define stack    (*(volatile uint16_t (*)[STACK_SIZE])(0x6000))
 
@@ -152,7 +121,7 @@ static uint8_t   new_x, new_y;
 #define IN_BOUNDS_X(x_) ((x_) < SIZE_X)
 #define IN_BOUNDS_Y(y_) ((y_) < SIZE_Y)
 
-int16_t __fastcall__ solve(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
+int16_t __fastcall__ solve_dfs(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy) {
   /* Init */
   pass = 0;
   

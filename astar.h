@@ -1,6 +1,6 @@
 /* 
 ============================================================
-Depth-first Search Algorithm - NES Proof-of-concept
+A* Pathfinding Algorithm - NES Implementation
 Copyright 2018 - 2021 Ninja Dynamics - See license below
 ============================================================
 Creative Commons - Attribution 3.0 Unported
@@ -23,12 +23,10 @@ Under the following terms:
     others from doing anything the license permits.
 ============================================================
 */
-
-#ifndef DFS_H
-#define DFS_H
+#ifndef ASTAR_H
+#define ASTAR_H
 
 #include "neslib.h"
-
 #include <inttypes.h>
 
 #define SIZE_OF_ARRAY(array) \
@@ -50,7 +48,7 @@ Under the following terms:
 #define waypointX    (*(volatile uint8_t (*)[STACK_SIZE])(0x6800))
 #define waypointY    (*(volatile uint8_t (*)[STACK_SIZE])(0x6C00))
 
-void __fastcall__ initialize_dfs_solver(void);
-int16_t __fastcall__ solve_dfs(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy);
+void __fastcall__ initialize_astar_solver(void);
+int16_t __fastcall__ solve_astar(uint8_t sx, uint8_t sy, uint8_t dx, uint8_t dy);
 
-#endif // dfs.h
+#endif // astar.h
