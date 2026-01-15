@@ -27,5 +27,6 @@ const char area[30][32] = {
   {"X   X      XXXX   X     XXX    X"},
   {"X   X   X                      X"},
   {"X                              X"},
+  {"X                              X"},
   {"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"}
 };
